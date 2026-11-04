@@ -28,6 +28,11 @@ struct MenuContent: View {
         Text("Nächste Bewegungspause in \(Int((state.tracker.remainingSeconds / 60).rounded(.up))) Min.")
         Divider()
         Button("Jetzt Bewegungspause machen") { controller.showExercisePrompt() }
+        Menu("Bewegungspause mit …") {
+            Button("1 Übung (kurz)") { controller.showExercisePrompt(count: 1) }
+            Button("3 Übungen (normal)") { controller.showExercisePrompt(count: 3) }
+            Button("5 Übungen (ausgiebig)") { controller.showExercisePrompt(count: 5) }
+        }
         Button(state.settings.showDesktopWidget ? "Widget ausblenden" : "Widget anzeigen") {
             state.updateSettings { $0.showDesktopWidget.toggle() }
         }
@@ -57,7 +62,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panel = DesktopPanel(
             rootView: DesktopWidgetView(
                 onEdit: { [weak self] in self?.showEditor() },
-                onStats: { [weak self] in self?.showStats() }
+                onStats: { [weak self] in self?.showStats() },
+                onBreak: { [weak self] count in self?.showExercisePrompt(count: count) },
+                onClose: { [weak self] in self?.state.updateSettings { $0.showDesktopWidget = false } }
             )
                 .environmentObject(state)
         )
@@ -103,8 +110,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func showExercisePrompt() {
-        let count = state.settings.exercisesPerBreak
+    func showExercisePrompt(count requested: Int? = nil) {
+        let count = requested ?? state.settings.exercisesPerBreak
         promptWindow.show(title: "Bewegungspause", floating: true) {
             ExercisePromptView(
                 exercises: ExerciseCatalog.random(count: count),

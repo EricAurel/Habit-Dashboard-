@@ -32,6 +32,15 @@ final class DesktopPanel: NSPanel {
 
     static let autosaveName = "HabitDesktopPanel"
 
+    /// Beim Ein-/Ausklappen bleibt die Oberkante stehen (AppKit hält sonst die Unterkante fest).
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        var rect = frameRect
+        if isVisible && rect.size != frame.size && rect.origin == frame.origin {
+            rect.origin.y = frame.maxY - rect.height
+        }
+        super.setFrame(rect, display: flag)
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 

@@ -6,15 +6,91 @@ struct DesktopWidgetView: View {
     @EnvironmentObject var state: AppState
     var onEdit: () -> Void = {}
     var onStats: () -> Void = {}
+    /// Startet eine Bewegungspause; nil = Anzahl Übungen aus den Einstellungen.
+    var onBreak: (Int?) -> Void = { _ in }
+    var onClose: () -> Void = {}
 
     var body: some View {
         let streaks = state.streaks
         let habits = state.data.habits
         let doneCount = habits.filter { state.isDone($0) }.count
+        let collapsed = state.settings.widgetCollapsed
 
         VStack(alignment: .leading, spacing: 14) {
+            toolbar(collapsed: collapsed)
             header(streak: streaks.overallStreak(today: state.today), done: doneCount, total: habits.count)
 
+            if !collapsed {
+                content(habits: habits, streaks: streaks)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(18)
+        .frame(width: 300)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.12))
+        )
+        .contextMenu {
+            Button("Bewegungspause starten") { onBreak(nil) }
+            Button("Statistik …", action: onStats)
+            Button("Gewohnheiten bearbeiten …", action: onEdit)
+            Divider()
+            Button(collapsed ? "Ausklappen" : "Einklappen", action: toggleCollapsed)
+            Button("Widget schließen", action: onClose)
+        }
+    }
+
+    // MARK: - Leiste oben
+
+    private func toolbar(collapsed: Bool) -> some View {
+        let defaultCount = state.settings.exercisesPerBreak
+        return HStack(spacing: 12) {
+            Menu {
+                Button("Jetzt starten (\(defaultCount) Übung\(defaultCount == 1 ? "" : "en"))") { onBreak(nil) }
+                Divider()
+                Button("Kurz – 1 Übung") { onBreak(1) }
+                Button("Normal – 3 Übungen") { onBreak(3) }
+                Button("Ausgiebig – 5 Übungen") { onBreak(5) }
+            } label: {
+                Label("Bewegungspause", systemImage: "figure.run")
+                    .font(.caption.weight(.semibold))
+            } primaryAction: {
+                onBreak(nil)
+            }
+            .menuStyle(.button)
+            .buttonStyle(.borderless)
+            .fixedSize()
+            .help("Klick: Pause jetzt starten · Pfeil: Länge wählen")
+
+            Spacer()
+
+            ToolbarIcon(systemName: "chart.bar.xaxis", help: "Statistik öffnen", action: onStats)
+            ToolbarIcon(
+                systemName: collapsed ? "chevron.down" : "chevron.up",
+                help: collapsed ? "Widget ausklappen" : "Widget einklappen",
+                action: toggleCollapsed
+            )
+            ToolbarIcon(
+                systemName: "xmark",
+                help: "Widget schließen – über 👍 in der Menüleiste wieder öffnen",
+                action: onClose
+            )
+        }
+    }
+
+    private func toggleCollapsed() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            state.updateSettings { $0.widgetCollapsed.toggle() }
+        }
+    }
+
+    // MARK: - Inhalt
+
+    @ViewBuilder
+    private func content(habits: [Habit], streaks: StreakCalculator) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             if habits.isEmpty {
                 Button("Erste Gewohnheit anlegen …", action: onEdit)
                     .buttonStyle(.link)
@@ -43,17 +119,6 @@ struct DesktopWidgetView: View {
                 quietReason: state.quietReason
             )
         }
-        .padding(18)
-        .frame(width: 300)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.12))
-        )
-        .contextMenu {
-            Button("Statistik …", action: onStats)
-            Button("Gewohnheiten bearbeiten …", action: onEdit)
-        }
     }
 
     private func header(streak: Int, done: Int, total: Int) -> some View {
@@ -67,15 +132,30 @@ struct DesktopWidgetView: View {
                     .contentTransition(.numericText())
             }
             Spacer()
-            Button(action: onStats) {
-                Image(systemName: "chart.bar.xaxis")
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("Statistik öffnen")
             StreakBadge(count: streak, large: true)
                 .help("Tage in Folge, an denen alle Gewohnheiten erledigt wurden")
         }
+    }
+}
+
+struct ToolbarIcon: View {
+    let systemName: String
+    let help: String
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(hovering ? Color.primary : Color.secondary)
+                .frame(width: 20, height: 20)
+                .background(Circle().fill(Color.primary.opacity(hovering ? 0.1 : 0)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(help)
     }
 }
 

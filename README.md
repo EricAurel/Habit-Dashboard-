@@ -4,6 +4,11 @@ Ein Habit Tracker für den Mac, der als Widget direkt auf dem Schreibtisch liegt
 
 ## Funktionen
 
+- **Leiste oben im Widget:**
+  - 🏃 *Bewegungspause*: Klick startet sie sofort, das Dropdown wählt 1, 3 oder 5 Übungen;
+  - Statistik;
+  - Ein-/Ausklappen (nur Kopfzeile mit Streak);
+  - ✕ Schließen (über 👍 in der Menüleiste wieder anzeigen).
 - **Desktop-Widget:** liegt hinter allen Fenstern auf dem Schreibtisch, ist auf allen Spaces sichtbar und lässt sich mit der Maus verschieben (die Position wird gespeichert).
 - **Tägliche Gewohnheiten:** abhaken per Klick auf die Box.
 - **Streaks 🔥:**

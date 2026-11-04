@@ -29,6 +29,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var quietDuringFullscreen: Bool = true
     /// Keine Popups, solange Mikrofon oder Kamera benutzt werden (Video-Calls).
     public var quietDuringCalls: Bool = true
+    /// Widget eingeklappt: nur Kopfzeile sichtbar.
+    public var widgetCollapsed: Bool = false
 
     public init() {}
 
@@ -42,6 +44,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         showDesktopWidget = try c.decodeIfPresent(Bool.self, forKey: .showDesktopWidget) ?? d.showDesktopWidget
         quietDuringFullscreen = try c.decodeIfPresent(Bool.self, forKey: .quietDuringFullscreen) ?? d.quietDuringFullscreen
         quietDuringCalls = try c.decodeIfPresent(Bool.self, forKey: .quietDuringCalls) ?? d.quietDuringCalls
+        widgetCollapsed = try c.decodeIfPresent(Bool.self, forKey: .widgetCollapsed) ?? d.widgetCollapsed
     }
 }
 
