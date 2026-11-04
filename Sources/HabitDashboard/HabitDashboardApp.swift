@@ -12,7 +12,7 @@ struct HabitDashboardApp: App {
             MenuContent(controller: appDelegate)
                 .environmentObject(appDelegate.state)
         } label: {
-            Image(systemName: "checkmark.circle.fill")
+            Text("👍")
         }
     }
 }

@@ -5,7 +5,7 @@ import SwiftUI
 /// Gewohnheiten verwalten und Einstellungen ändern.
 struct HabitEditorView: View {
     @EnvironmentObject var state: AppState
-    @State private var newEmoji = ""
+    @State private var newEmoji = "✅"
     @State private var newName = ""
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -22,14 +22,13 @@ struct HabitEditorView: View {
                 .frame(minHeight: 160)
 
                 HStack {
-                    TextField("😀", text: $newEmoji)
-                        .frame(width: 44)
+                    EmojiPicker(selection: $newEmoji)
                     TextField("Neue Gewohnheit", text: $newName)
                         .onSubmit(add)
                     Button("Hinzufügen", action: add)
                         .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                Text("Tipp: Mit ⌃⌘Leertaste öffnest du die Emoji-Auswahl. Reihenfolge per Drag & Drop.")
+                Text("Tipp: Emoji über das Menü links wählen. Reihenfolge per Drag & Drop.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -83,7 +82,7 @@ struct HabitEditorView: View {
     private func add() {
         state.addHabit(name: newName, emoji: newEmoji)
         newName = ""
-        newEmoji = ""
+        newEmoji = "✅"
     }
 
     private func settingBinding<T>(_ keyPath: WritableKeyPath<AppSettings, T>) -> Binding<T> {
@@ -113,11 +112,10 @@ struct HabitEditRow: View {
 
     var body: some View {
         HStack {
-            TextField("", text: Binding(
+            EmojiPicker(selection: Binding(
                 get: { habit.emoji },
                 set: { state.rename(habit, emoji: $0) }
             ))
-            .frame(width: 36)
             TextField("", text: Binding(
                 get: { habit.name },
                 set: { state.rename(habit, name: $0) }

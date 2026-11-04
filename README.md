@@ -56,7 +56,7 @@ swift run
 ./scripts/build-app.sh --install
 ```
 
-Danach erscheint oben rechts in der Menüleiste ein ✓-Symbol und das Widget auf dem Schreibtisch. Für den Autostart öffnest du über das Menü **Gewohnheiten & Einstellungen …** und aktivierst *Beim Anmelden automatisch starten*. Das funktioniert nur mit der installierten `.app`.
+Danach erscheint oben rechts in der Menüleiste ein 👍 und das Widget auf dem Schreibtisch. Für den Autostart öffnest du über das Menü **Gewohnheiten & Einstellungen …** und aktivierst *Beim Anmelden automatisch starten*. Das funktioniert nur mit der installierten `.app`.
 
 In Xcode entwickeln: `open Package.swift`, dann das Schema *HabitDashboard* starten.
 
