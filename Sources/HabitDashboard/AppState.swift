@@ -88,9 +88,9 @@ final class AppState: ObservableObject {
         tracker.snooze(seconds: TimeInterval(data.settings.snoozeMinutes * 60))
     }
 
-    func logBreak() {
+    func logBreak(entries: [ExerciseEntry] = []) {
         refreshToday()
-        data.logBreak(on: today)
+        data.logBreak(on: today, entries: entries)
         tracker.reset()
     }
 

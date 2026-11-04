@@ -46,6 +46,8 @@ public struct HabitData: Codable, Equatable, Sendable {
     public var completions: [String: Set<UUID>] = [:]
     /// Tag ("yyyy-MM-dd") -> Anzahl erledigter Bewegungspausen.
     public var exerciseBreaks: [String: Int] = [:]
+    /// Tag ("yyyy-MM-dd") -> tatsächlich ausgeführte Übungen.
+    public var exerciseLog: [String: [ExerciseEntry]] = [:]
     public var settings = AppSettings()
 
     public init() {}
@@ -55,6 +57,7 @@ public struct HabitData: Codable, Equatable, Sendable {
         habits = try c.decodeIfPresent([Habit].self, forKey: .habits) ?? []
         completions = try c.decodeIfPresent([String: Set<UUID>].self, forKey: .completions) ?? [:]
         exerciseBreaks = try c.decodeIfPresent([String: Int].self, forKey: .exerciseBreaks) ?? [:]
+        exerciseLog = try c.decodeIfPresent([String: [ExerciseEntry]].self, forKey: .exerciseLog) ?? [:]
         settings = try c.decodeIfPresent(AppSettings.self, forKey: .settings) ?? AppSettings()
     }
 
@@ -119,7 +122,16 @@ public struct HabitData: Codable, Equatable, Sendable {
         exerciseBreaks[day.key] ?? 0
     }
 
-    public mutating func logBreak(on day: Day) {
+    /// Zählt eine Bewegungspause und speichert die eingegebenen Mengen (0 wird ignoriert).
+    public mutating func logBreak(on day: Day, entries: [ExerciseEntry] = []) {
         exerciseBreaks[day.key, default: 0] += 1
+        let done = entries.filter { $0.amount > 0 }
+        if !done.isEmpty {
+            exerciseLog[day.key, default: []].append(contentsOf: done)
+        }
+    }
+
+    public func exerciseEntries(on day: Day) -> [ExerciseEntry] {
+        exerciseLog[day.key] ?? []
     }
 }

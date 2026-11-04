@@ -101,8 +101,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 count: count,
                 snoozeMinutes: state.settings.snoozeMinutes,
                 breakStreak: state.streaks.breakStreak(today: state.today),
-                onDone: { [weak self] in
-                    self?.state.logBreak()
+                onDone: { [weak self] entries in
+                    self?.state.logBreak(entries: entries)
                     self?.closePrompt()
                 },
                 onSnooze: { [weak self] in

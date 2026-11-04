@@ -154,6 +154,21 @@ final class PersistenceTests: XCTestCase {
         XCTAssertTrue(decoded.exerciseBreaks.isEmpty)
     }
 
+    func testLogBreakStoresEnteredAmounts() {
+        var data = HabitData()
+        let day = Day(year: 2026, month: 11, day: 4)
+        let squats = ExerciseCatalog.all.first { $0.name == "Kniebeugen" }!
+        let plank = ExerciseCatalog.all.first { $0.name == "Plank" }!
+        data.logBreak(on: day, entries: [
+            ExerciseEntry(exercise: squats, amount: 30),
+            ExerciseEntry(exercise: plank, amount: 0), // nicht gemacht
+        ])
+        XCTAssertEqual(data.breaks(on: day), 1)
+        XCTAssertEqual(data.exerciseEntries(on: day).map(\.amount), [30])
+        XCTAssertEqual(squats.amount, "25×")
+        XCTAssertEqual(plank.amount, "60 Sek.")
+    }
+
     func testRandomExercisesAreUnique() {
         let picked = ExerciseCatalog.random(count: 3)
         XCTAssertEqual(picked.count, 3)
