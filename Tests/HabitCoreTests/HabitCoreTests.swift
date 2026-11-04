@@ -125,6 +125,25 @@ final class ActiveTimeTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.activeSeconds, 0)
     }
 
+    func testQuietTimeDefersPromptUntilItEnds() {
+        var tracker = ActiveTimeTracker(interval: 60, idleReset: 300)
+        XCTAssertFalse(tracker.tick(elapsed: 30, idleSeconds: 0, quiet: true))
+        XCTAssertFalse(tracker.tick(elapsed: 30, idleSeconds: 0, quiet: true)) // fällig, aber Call läuft
+        XCTAssertTrue(tracker.isPending)
+        XCTAssertFalse(tracker.tick(elapsed: 15, idleSeconds: 0, quiet: true))
+        XCTAssertTrue(tracker.tick(elapsed: 15, idleSeconds: 0, quiet: false)) // Call vorbei
+        XCTAssertFalse(tracker.isPending)
+        XCTAssertEqual(tracker.activeSeconds, 0)
+    }
+
+    func testIdleWhilePendingCancelsPrompt() {
+        var tracker = ActiveTimeTracker(interval: 60, idleReset: 300)
+        _ = tracker.tick(elapsed: 60, idleSeconds: 0, quiet: true)
+        XCTAssertTrue(tracker.isPending)
+        XCTAssertFalse(tracker.tick(elapsed: 15, idleSeconds: 400, quiet: false)) // war schon weg
+        XCTAssertFalse(tracker.isPending)
+    }
+
     func testSnooze() {
         var tracker = ActiveTimeTracker(interval: 3600, idleReset: 300)
         tracker.snooze(seconds: 600)
@@ -173,5 +192,59 @@ final class PersistenceTests: XCTestCase {
         let picked = ExerciseCatalog.random(count: 3)
         XCTAssertEqual(picked.count, 3)
         XCTAssertEqual(Set(picked).count, 3)
+    }
+}
+
+final class StatsTests: XCTestCase {
+    var calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Europe/Berlin")!
+        return c
+    }()
+    let today = Day(year: 2026, month: 11, day: 4)
+
+    func testMilestones() {
+        XCTAssertNil(Milestones.reached(streak: 6))
+        XCTAssertEqual(Milestones.reached(streak: 7), 7)
+        XCTAssertEqual(Milestones.reached(streak: 45), 30)
+        XCTAssertEqual(Milestones.reached(streak: 400), 365)
+        XCTAssertTrue(Milestones.isMilestone(30))
+        XCTAssertFalse(Milestones.isMilestone(31))
+        XCTAssertEqual(Milestones.badge(for: 100), "🥇")
+    }
+
+    func testHabitRatesOnlyCountDaysSinceCreation() {
+        var data = HabitData()
+        let old = data.addHabit(name: "Alt", emoji: "A", today: today.adding(days: -20, calendar: calendar))
+        let new = data.addHabit(name: "Neu", emoji: "N", today: today.adding(days: -1, calendar: calendar))
+        data.toggle(old.id, on: today)
+        data.toggle(new.id, on: today)
+        data.toggle(new.id, on: today.adding(days: -1, calendar: calendar))
+        let stats = StatsCalculator(data: data, calendar: calendar)
+        let week = stats.days(endingAt: today, count: 7)
+        XCTAssertEqual(week.count, 7)
+        XCTAssertEqual(week.last, today)
+
+        let summaries = stats.habitSummaries(week, today: today)
+        XCTAssertEqual(summaries[0].possibleDays, 7)
+        XCTAssertEqual(summaries[0].doneDays, 1)
+        XCTAssertEqual(summaries[1].possibleDays, 2)
+        XCTAssertEqual(summaries[1].rate, 1)
+        XCTAssertEqual(stats.perfectDays(week), 1)
+    }
+
+    func testExerciseTotals() {
+        var data = HabitData()
+        let squats = ExerciseCatalog.all.first { $0.name == "Kniebeugen" }!
+        data.logBreak(on: today, entries: [ExerciseEntry(exercise: squats, amount: 20)])
+        data.logBreak(on: today.adding(days: -1, calendar: calendar), entries: [ExerciseEntry(exercise: squats, amount: 25)])
+        data.logBreak(on: today.adding(days: -30, calendar: calendar), entries: [ExerciseEntry(exercise: squats, amount: 99)])
+        let stats = StatsCalculator(data: data, calendar: calendar)
+        let week = stats.days(endingAt: today, count: 7)
+        XCTAssertEqual(stats.totalBreaks(week), 2)
+        let totals = stats.exerciseTotals(week)
+        XCTAssertEqual(totals.count, 1)
+        XCTAssertEqual(totals[0].total, 45)
+        XCTAssertEqual(totals[0].sessions, 2)
     }
 }

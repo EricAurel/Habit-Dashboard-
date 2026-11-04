@@ -57,6 +57,11 @@ struct HabitEditorView: View {
                     value: settingBinding(\.exercisesPerBreak),
                     in: 1...5
                 )
+                Toggle("Nicht stören bei Vollbild-Apps", isOn: settingBinding(\.quietDuringFullscreen))
+                Toggle("Nicht stören während Video-Calls (Mikrofon/Kamera aktiv)", isOn: settingBinding(\.quietDuringCalls))
+                Text("Eine fällige Pause wird dann aufgehoben und erscheint, sobald du wieder frei bist.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Allgemein") {

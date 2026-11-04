@@ -5,6 +5,7 @@ import SwiftUI
 struct DesktopWidgetView: View {
     @EnvironmentObject var state: AppState
     var onEdit: () -> Void = {}
+    var onStats: () -> Void = {}
 
     var body: some View {
         let streaks = state.streaks
@@ -38,7 +39,8 @@ struct DesktopWidgetView: View {
             BreakFooter(
                 breaksToday: state.data.breaks(on: state.today),
                 breakStreak: streaks.breakStreak(today: state.today),
-                tracker: state.tracker
+                tracker: state.tracker,
+                quietReason: state.quietReason
             )
         }
         .padding(18)
@@ -49,6 +51,7 @@ struct DesktopWidgetView: View {
                 .strokeBorder(Color.white.opacity(0.12))
         )
         .contextMenu {
+            Button("Statistik …", action: onStats)
             Button("Gewohnheiten bearbeiten …", action: onEdit)
         }
     }
@@ -64,6 +67,12 @@ struct DesktopWidgetView: View {
                     .contentTransition(.numericText())
             }
             Spacer()
+            Button(action: onStats) {
+                Image(systemName: "chart.bar.xaxis")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Statistik öffnen")
             StreakBadge(count: streak, large: true)
                 .help("Tage in Folge, an denen alle Gewohnheiten erledigt wurden")
         }
@@ -87,6 +96,11 @@ struct HabitRow: View {
                     .foregroundStyle(isDone ? Color.secondary : Color.primary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
+                if let level = Milestones.reached(streak: streak) {
+                    Text(Milestones.badge(for: level))
+                        .font(.callout)
+                        .help("\(level)-Tage-Meilenstein erreicht")
+                }
                 StreakBadge(count: streak, large: false)
             }
             .padding(.horizontal, 8)
@@ -198,6 +212,7 @@ struct BreakFooter: View {
     let breaksToday: Int
     let breakStreak: Int
     let tracker: ActiveTimeTracker
+    let quietReason: QuietReason?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -210,11 +225,17 @@ struct BreakFooter: View {
                 }
             }
             .font(.caption)
-            ProgressView(value: tracker.progress)
+            ProgressView(value: tracker.isPending ? 1 : tracker.progress)
                 .tint(tracker.progress > 0.85 ? Color.orange : Color.accentColor)
-            Text("Nächste Pause in \(Int((tracker.remainingSeconds / 60).rounded(.up))) Min. aktiver Zeit")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            Group {
+                if tracker.isPending, let quietReason {
+                    Text("Pause fällig – \(quietReason.waitingText)")
+                } else {
+                    Text("Nächste Pause in \(Int((tracker.remainingSeconds / 60).rounded(.up))) Min. aktiver Zeit")
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
         }
     }
 }

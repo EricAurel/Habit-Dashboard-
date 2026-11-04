@@ -25,6 +25,10 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var snoozeMinutes: Int = 10
     public var exercisesPerBreak: Int = 3
     public var showDesktopWidget: Bool = true
+    /// Keine Popups, solange eine App im Vollbild läuft.
+    public var quietDuringFullscreen: Bool = true
+    /// Keine Popups, solange Mikrofon oder Kamera benutzt werden (Video-Calls).
+    public var quietDuringCalls: Bool = true
 
     public init() {}
 
@@ -36,6 +40,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         snoozeMinutes = try c.decodeIfPresent(Int.self, forKey: .snoozeMinutes) ?? d.snoozeMinutes
         exercisesPerBreak = try c.decodeIfPresent(Int.self, forKey: .exercisesPerBreak) ?? d.exercisesPerBreak
         showDesktopWidget = try c.decodeIfPresent(Bool.self, forKey: .showDesktopWidget) ?? d.showDesktopWidget
+        quietDuringFullscreen = try c.decodeIfPresent(Bool.self, forKey: .quietDuringFullscreen) ?? d.quietDuringFullscreen
+        quietDuringCalls = try c.decodeIfPresent(Bool.self, forKey: .quietDuringCalls) ?? d.quietDuringCalls
     }
 }
 

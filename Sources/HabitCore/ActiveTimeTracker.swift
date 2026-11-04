@@ -5,8 +5,13 @@ import Foundation
 /// Die App ruft `tick` regelmäßig auf und übergibt, wie lange seit der letzten
 /// Maus-/Tastatureingabe vergangen ist. Wer länger als `idleReset` nichts tut,
 /// hat bereits Pause gemacht – der Zähler beginnt von vorn.
+///
+/// Ist eine Pause fällig, während eine Ruhezeit gilt (Vollbild, Video-Call),
+/// bleibt sie *vorgemerkt* und wird gemeldet, sobald die Ruhezeit endet.
 public struct ActiveTimeTracker: Sendable, Equatable {
     public private(set) var activeSeconds: TimeInterval = 0
+    /// Pause ist fällig, wartet aber auf das Ende einer Ruhezeit.
+    public private(set) var isPending = false
     public var interval: TimeInterval
     public var idleReset: TimeInterval
 
@@ -24,16 +29,22 @@ public struct ActiveTimeTracker: Sendable, Equatable {
     /// - Parameters:
     ///   - elapsed: Sekunden seit dem letzten Tick.
     ///   - idleSeconds: Sekunden seit der letzten Benutzereingabe.
-    /// - Returns: `true`, wenn jetzt eine Bewegungspause fällig ist.
-    public mutating func tick(elapsed: TimeInterval, idleSeconds: TimeInterval) -> Bool {
+    ///   - quiet: `true`, solange keine Popups erscheinen sollen.
+    /// - Returns: `true`, wenn jetzt das Pausen-Popup gezeigt werden soll.
+    public mutating func tick(elapsed: TimeInterval, idleSeconds: TimeInterval, quiet: Bool = false) -> Bool {
         // Lange Lücke zwischen zwei Ticks (z. B. Ruhezustand) oder lange inaktiv => Pause gemacht.
         if elapsed >= idleReset || idleSeconds >= idleReset {
-            activeSeconds = 0
+            reset()
             return false
         }
-        activeSeconds += elapsed
-        if activeSeconds >= interval {
-            activeSeconds = 0
+        if !isPending {
+            activeSeconds = min(interval, activeSeconds + elapsed)
+            if activeSeconds >= interval {
+                isPending = true
+            }
+        }
+        if isPending && !quiet {
+            reset()
             return true
         }
         return false
@@ -41,10 +52,12 @@ public struct ActiveTimeTracker: Sendable, Equatable {
 
     public mutating func reset() {
         activeSeconds = 0
+        isPending = false
     }
 
     /// Erinnert in `seconds` aktiver Zeit erneut.
     public mutating func snooze(seconds: TimeInterval) {
+        isPending = false
         activeSeconds = max(0, interval - seconds)
     }
 }

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import HabitCore
 import SwiftUI
@@ -11,6 +12,8 @@ final class AppState: ObservableObject {
     @Published private(set) var today = Day.today()
     @Published private(set) var tracker: ActiveTimeTracker
     @Published var lastError: String?
+    /// Gesetzt, solange eine fällige Pause wegen Vollbild/Call wartet.
+    @Published private(set) var quietReason: QuietReason?
 
     private let persistence: HabitPersistence
 
@@ -40,6 +43,14 @@ final class AppState: ObservableObject {
 
     func toggle(_ habit: Habit) {
         data.toggle(habit.id, on: today)
+        // Dezente Feier: Sound, wenn das Abhaken genau einen Meilenstein trifft.
+        if data.isDone(habit.id, on: today) {
+            let streak = streaks.currentStreak(for: habit.id, today: today)
+            let overall = streaks.overallStreak(today: today)
+            if Milestones.isMilestone(streak) || Milestones.isMilestone(overall) {
+                NSSound(named: "Glass")?.play()
+            }
+        }
     }
 
     func isDone(_ habit: Habit) -> Bool {
@@ -77,12 +88,18 @@ final class AppState: ObservableObject {
     // MARK: - Bewegungspausen
 
     /// Wird vom Aktivitätsmonitor aufgerufen. Gibt `true` zurück, wenn eine Pause fällig ist.
-    func tick(elapsed: TimeInterval, idleSeconds: TimeInterval) -> Bool {
+    func tick(elapsed: TimeInterval, idleSeconds: TimeInterval, quiet: QuietReason?) -> Bool {
         refreshToday()
-        return tracker.tick(elapsed: elapsed, idleSeconds: idleSeconds)
+        let due = tracker.tick(elapsed: elapsed, idleSeconds: idleSeconds, quiet: quiet != nil)
+        let reason = tracker.isPending ? quiet : nil
+        if reason != quietReason { quietReason = reason }
+        return due
     }
 
-    func resetActiveTime() { tracker.reset() }
+    func resetActiveTime() {
+        tracker.reset()
+        quietReason = nil
+    }
 
     func snooze() {
         tracker.snooze(seconds: TimeInterval(data.settings.snoozeMinutes * 60))
@@ -91,7 +108,7 @@ final class AppState: ObservableObject {
     func logBreak(entries: [ExerciseEntry] = []) {
         refreshToday()
         data.logBreak(on: today, entries: entries)
-        tracker.reset()
+        resetActiveTime()
     }
 
     func refreshToday() {

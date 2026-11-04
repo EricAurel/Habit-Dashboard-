@@ -31,6 +31,7 @@ struct MenuContent: View {
         Button(state.settings.showDesktopWidget ? "Widget ausblenden" : "Widget anzeigen") {
             state.updateSettings { $0.showDesktopWidget.toggle() }
         }
+        Button("Statistik …") { controller.showStats() }
         Button("Gewohnheiten & Einstellungen …") { controller.showEditor() }
             .keyboardShortcut(",")
         Divider()
@@ -46,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var desktopPanel: DesktopPanel?
     private let promptWindow = FloatingWindowController()
     private let editorWindow = FloatingWindowController()
+    private let statsWindow = FloatingWindowController()
     private var settingsObserver: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -53,7 +55,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         let panel = DesktopPanel(
-            rootView: DesktopWidgetView(onEdit: { [weak self] in self?.showEditor() })
+            rootView: DesktopWidgetView(
+                onEdit: { [weak self] in self?.showEditor() },
+                onStats: { [weak self] in self?.showStats() }
+            )
                 .environmentObject(state)
         )
         desktopPanel = panel
@@ -71,7 +76,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             // Während das Popup offen ist, wird nicht weitergezählt.
             guard !self.promptWindow.isVisible else { return }
-            if self.state.tick(elapsed: elapsed, idleSeconds: idle) {
+            let settings = self.state.settings
+            let quiet = QuietTime.current(
+                fullscreen: settings.quietDuringFullscreen,
+                calls: settings.quietDuringCalls
+            )
+            if self.state.tick(elapsed: elapsed, idleSeconds: idle, quiet: quiet) {
                 self.showExercisePrompt()
             }
         }
@@ -120,6 +130,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func closePrompt() {
         promptWindow.close()
         monitor.restartClock()
+    }
+
+    func showStats() {
+        statsWindow.show(title: "Statistik", floating: false) {
+            StatsView().environmentObject(state)
+        }
     }
 
     func showEditor() {

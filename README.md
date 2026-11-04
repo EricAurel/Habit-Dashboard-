@@ -17,6 +17,20 @@ Ein Habit Tracker für den Mac, der als Widget direkt auf dem Schreibtisch liegt
   - Nach 5 Min. Inaktivität, im Ruhezustand oder bei gesperrtem Bildschirm beginnt der Zähler neu.
   - Nach 60 Min. erscheint ein Popup mit zufälligen Übungen. Du kannst *Erledigt*, *Später* oder *Überspringen* wählen.
   - Erledigte Pausen werden gezählt und haben einen eigenen Streak.
+- **Übungen eintragen:**
+  - Im Popup trägst du ein, wie viele Wiederholungen oder Sekunden du geschafft hast.
+  - Ein Häkchen zeigt, ob du das Ziel erreicht hast.
+  - Die Übungen sind intensiv, z. B. Burpees, Mountain Climbers und Jump Squats.
+- **Ruhezeiten:**
+  - Während Vollbild-Apps und Video-Calls (Mikrofon oder Kamera aktiv) wird eine fällige Pause aufgehoben.
+  - Sie erscheint danach, sobald du wieder frei bist. Beides lässt sich abschalten.
+- **Statistik-Fenster:**
+  - Erfüllung pro Tag als Diagramm über 7, 30 oder 90 Tage;
+  - Quote, Streak und Rekord pro Gewohnheit;
+  - Summen pro Übung.
+- **Meilensteine** (dezent):
+  - Abzeichen 🥉 7, 🥈 30, 🥇 100 und 🏆 365 Tage neben der Gewohnheit;
+  - ein leiser Sound, sobald ein Meilenstein erreicht wird.
 - **Menüleisten-Symbol** (kein Dock-Symbol):
   - Pause jetzt starten;
   - Widget ein- und ausblenden;
@@ -53,6 +67,7 @@ Sources/HabitCore/        Plattformunabhängige Logik (getestet)
   Day.swift               Kalendertage ohne Uhrzeit
   Models.swift            Gewohnheiten, Einstellungen, Abhak-Daten
   Streaks.swift           Streak-Berechnung + Heatmap-Raster
+  Stats.swift             Statistik + Meilensteine
   ActiveTimeTracker.swift Zählt aktive Zeit bis zur Bewegungspause
   Exercises.swift         Übungskatalog
   Persistence.swift       JSON-Speicherung
@@ -60,8 +75,9 @@ Sources/HabitDashboard/   macOS-App (SwiftUI + AppKit)
   HabitDashboardApp.swift App, Menüleiste, AppDelegate
   AppState.swift          Beobachtbarer Zustand
   ActivityMonitor.swift   Misst Eingabe-Inaktivität, Ruhezustand
+  QuietTime.swift         Erkennt Vollbild, Mikrofon, Kamera
   Windows.swift           Desktop-Panel + Popup-Fenster
-  Views/                  Widget, Übungs-Popup, Editor
+  Views/                  Widget, Übungs-Popup, Statistik, Editor
 Tests/HabitCoreTests/     Unit-Tests
 ```
 
