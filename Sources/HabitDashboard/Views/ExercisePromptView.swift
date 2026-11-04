@@ -114,9 +114,9 @@ struct ExerciseInputRow: View {
                 .frame(width: 32, alignment: .leading)
             Stepper("", value: $amount, in: 0...999, step: step)
                 .labelsHidden()
-            Image(systemName: amount >= exercise.target ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(amount >= exercise.target ? Color.green : Color.secondary)
-                .help(amount >= exercise.target ? "Ziel erreicht" : "Unter dem Ziel")
+            Image(systemName: amount >= exercise.goal ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(amount >= exercise.goal ? Color.green : Color.secondary)
+                .help(amount >= exercise.goal ? "Ziel erreicht" : "Unter dem Ziel")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

@@ -21,18 +21,32 @@ public struct Exercise: Hashable, Sendable, Identifiable {
     public let unit: ExerciseUnit
     /// z. B. "pro Bein" – Menge gilt je Seite.
     public let perSide: String?
+    /// Untergrenze bei Zielbereichen (z. B. Hangboard 10–30 Sek.); nil = festes Ziel.
+    public let minTarget: Int?
 
-    public init(emoji: String, name: String, target: Int, unit: ExerciseUnit = .reps, perSide: String? = nil) {
+    public init(
+        emoji: String,
+        name: String,
+        target: Int,
+        unit: ExerciseUnit = .reps,
+        perSide: String? = nil,
+        minTarget: Int? = nil
+    ) {
         self.emoji = emoji
         self.name = name
         self.target = target
         self.unit = unit
         self.perSide = perSide
+        self.minTarget = minTarget
     }
 
-    /// Anzeige wie "25×", "60 Sek." oder "15× pro Bein".
+    /// Ab dieser Menge gilt das Ziel als erreicht.
+    public var goal: Int { minTarget ?? target }
+
+    /// Anzeige wie "25×", "60 Sek.", "15× pro Bein" oder "10–30 Sek.".
     public var amount: String {
-        let base = unit == .reps ? "\(target)×" : "\(target) Sek."
+        let value = minTarget.map { "\($0)–\(target)" } ?? "\(target)"
+        let base = unit == .reps ? "\(value)×" : "\(value) Sek."
         return perSide.map { "\(base) \($0)" } ?? base
     }
 }
@@ -75,6 +89,12 @@ public enum ExerciseCatalog {
         Exercise(emoji: "🏋️", name: "Seitstütz", target: 30, unit: .seconds, perSide: "pro Seite"),
         Exercise(emoji: "🌉", name: "Glute Bridges", target: 20),
         Exercise(emoji: "🏃‍♀️", name: "High Knees", target: 45, unit: .seconds),
+        // Mit Klimmzugstange / Hangboard
+        Exercise(emoji: "🧗", name: "Klimmzüge", target: 8),
+        Exercise(emoji: "🚣", name: "Rudern (Australian Rows)", target: 12),
+        Exercise(emoji: "💥", name: "Dips", target: 12),
+        Exercise(emoji: "🪨", name: "Hangboard", target: 30, unit: .seconds, minTarget: 10),
+        Exercise(emoji: "🦿", name: "Toes to Bar", target: 8),
     ]
 
     public static func random<G: RandomNumberGenerator>(count: Int, using generator: inout G) -> [Exercise] {

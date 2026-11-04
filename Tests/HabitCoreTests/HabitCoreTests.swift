@@ -188,6 +188,16 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(plank.amount, "60 Sek.")
     }
 
+    func testRangeTargetExercise() {
+        let hang = ExerciseCatalog.all.first { $0.name == "Hangboard" }!
+        XCTAssertEqual(hang.amount, "10–30 Sek.")
+        XCTAssertEqual(hang.goal, 10)
+        XCTAssertEqual(hang.target, 30)
+        let pullups = ExerciseCatalog.all.first { $0.name == "Klimmzüge" }!
+        XCTAssertEqual(pullups.goal, pullups.target)
+        XCTAssertEqual(Set(ExerciseCatalog.all.map(\.name)).count, ExerciseCatalog.all.count, "Namen müssen eindeutig sein (dienen als ID)")
+    }
+
     func testRandomExercisesAreUnique() {
         let picked = ExerciseCatalog.random(count: 3)
         XCTAssertEqual(picked.count, 3)
