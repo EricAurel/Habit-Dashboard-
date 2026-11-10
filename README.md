@@ -16,7 +16,14 @@ Ein Habit Tracker für den Mac, der als Widget direkt auf dem Schreibtisch liegt
   - Gesamt-Streak für Tage, an denen *alle* Gewohnheiten erledigt sind;
   - Rekord-Streak im Editor;
   - ein heute noch offener Tag bricht den Streak nicht.
-- **Heatmap** der letzten 15 Wochen.
+- **Nachtragen:**
+  - Mit ‹ › neben dem Datum springst du bis zu 30 Tage zurück und hakst vergessene Gewohnheiten ab.
+  - Alternativ klickst du auf einen Tag in der Übersicht.
+  - Streaks werden dabei automatisch repariert. „Zurück zu heute“ bringt dich zum aktuellen Tag.
+- **Übersicht der letzten 15 Wochen:**
+  - Jede Spalte ist eine Woche, jede Zeile ein Wochentag (Mo–So).
+  - Je grüner ein Kästchen, desto mehr Gewohnheiten waren an dem Tag erledigt.
+  - Monatsnamen und eine Legende helfen beim Lesen.
 - **Bewegungspausen:**
   - Es zählt nur aktive Zeit, also Maus- oder Tastatureingaben.
   - Nach 5 Min. Inaktivität, im Ruhezustand oder bei gesperrtem Bildschirm beginnt der Zähler neu.

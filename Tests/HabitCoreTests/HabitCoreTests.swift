@@ -45,6 +45,17 @@ final class StreakTests: XCTestCase {
         XCTAssertEqual(calc.longestStreak(for: habit.id), 2)
     }
 
+    func testBackfillingYesterdayRepairsStreak() {
+        var data = HabitData()
+        let habit = data.addHabit(name: "Lesen", emoji: "📚", today: today) // heute angelegt
+        data.toggle(habit.id, on: today)
+        data.toggle(habit.id, on: day(-1)) // gestern vergessen -> nachgetragen
+        XCTAssertEqual(data.habits[0].createdDay, day(-1), "Anlegedatum rückt auf den nachgetragenen Tag")
+        let calc = StreakCalculator(data: data, calendar: calendar)
+        XCTAssertEqual(calc.currentStreak(for: habit.id, today: today), 2)
+        XCTAssertEqual(calc.overallStreak(today: today), 2)
+    }
+
     func testToggleTwiceRemovesCompletion() {
         var data = HabitData()
         let habit = data.addHabit(name: "Wasser", emoji: "💧", today: today)

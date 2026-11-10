@@ -10,6 +10,8 @@ final class AppState: ObservableObject {
         didSet { if data != oldValue { persist() } }
     }
     @Published private(set) var today = Day.today()
+    /// Der Tag, der im Widget gerade abgehakt wird (Standard: heute).
+    @Published private(set) var viewedDay = Day.today()
     @Published private(set) var tracker: ActiveTimeTracker
     @Published var lastError: String?
     /// Gesetzt, solange eine fällige Pause wegen Vollbild/Call wartet.
@@ -39,12 +41,31 @@ final class AppState: ObservableObject {
     var streaks: StreakCalculator { StreakCalculator(data: data) }
     var settings: AppSettings { data.settings }
 
+    // MARK: - Angezeigter Tag
+
+    /// So weit kann man zurückspringen, um vergessene Tage nachzutragen.
+    static let maxDaysBack = 30
+
+    var isViewingToday: Bool { viewedDay == today }
+    var earliestViewableDay: Day { today.adding(days: -Self.maxDaysBack) }
+    var canGoBack: Bool { viewedDay > earliestViewableDay }
+
+    func showPreviousDay() { show(viewedDay.adding(days: -1)) }
+    func showNextDay() { show(viewedDay.adding(days: 1)) }
+    func showToday() { show(today) }
+
+    func show(_ day: Day) {
+        let clamped = min(max(day, earliestViewableDay), today)
+        if clamped != viewedDay { viewedDay = clamped }
+    }
+
     // MARK: - Gewohnheiten
 
+    /// Hakt die Gewohnheit für den angezeigten Tag ab (heute oder nachgetragen).
     func toggle(_ habit: Habit) {
-        data.toggle(habit.id, on: today)
+        data.toggle(habit.id, on: viewedDay)
         // Dezente Feier: Sound, wenn das Abhaken genau einen Meilenstein trifft.
-        if data.isDone(habit.id, on: today) {
+        if data.isDone(habit.id, on: viewedDay) {
             let streak = streaks.currentStreak(for: habit.id, today: today)
             let overall = streaks.overallStreak(today: today)
             if Milestones.isMilestone(streak) || Milestones.isMilestone(overall) {
@@ -54,7 +75,7 @@ final class AppState: ObservableObject {
     }
 
     func isDone(_ habit: Habit) -> Bool {
-        data.isDone(habit.id, on: today)
+        data.isDone(habit.id, on: viewedDay)
     }
 
     func addHabit(name: String, emoji: String) {
@@ -113,7 +134,10 @@ final class AppState: ObservableObject {
 
     func refreshToday() {
         let now = Day.today()
-        if now != today { today = now }
+        guard now != today else { return }
+        // Nach Mitternacht zeigt das Widget wieder den neuen Tag.
+        viewedDay = now
+        today = now
     }
 
     // MARK: - Speichern

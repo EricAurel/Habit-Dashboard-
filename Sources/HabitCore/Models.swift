@@ -94,6 +94,10 @@ public struct HabitData: Codable, Equatable, Sendable {
             set.remove(habitID)
         } else {
             set.insert(habitID)
+            // Nachtragen vor dem Anlegedatum: Die Gewohnheit gab es offenbar schon.
+            if let index = habits.firstIndex(where: { $0.id == habitID }), day < habits[index].createdDay {
+                habits[index].createdOn = day.key
+            }
         }
         completions[day.key] = set.isEmpty ? nil : set
     }

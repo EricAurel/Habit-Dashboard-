@@ -110,7 +110,9 @@ struct DesktopWidgetView: View {
                 }
             }
 
-            HeatmapView(streaks: streaks, today: state.today)
+            HeatmapView(streaks: streaks, today: state.today, selected: state.viewedDay) { day in
+                withAnimation(.easeInOut(duration: 0.15)) { state.show(day) }
+            }
 
             BreakFooter(
                 breaksToday: state.data.breaks(on: state.today),
@@ -122,10 +124,37 @@ struct DesktopWidgetView: View {
     }
 
     private func header(streak: Int, done: Int, total: Int) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.today.date().formatted(.dateTime.weekday(.wide).day().month(.wide)))
-                    .font(.headline)
+        let viewingToday = state.isViewingToday
+        return HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    ToolbarIcon(systemName: "chevron.left", help: "Vorheriger Tag – vergessene Gewohnheiten nachtragen") {
+                        withAnimation(.easeInOut(duration: 0.15)) { state.showPreviousDay() }
+                    }
+                    .disabled(!state.canGoBack)
+                    Text(dayTitle(state.viewedDay))
+                        .font(.headline)
+                        .lineLimit(1)
+                        .contentTransition(.opacity)
+                    ToolbarIcon(systemName: "chevron.right", help: "Nächster Tag") {
+                        withAnimation(.easeInOut(duration: 0.15)) { state.showNextDay() }
+                    }
+                    .disabled(viewingToday)
+                }
+                if !viewingToday {
+                    HStack(spacing: 6) {
+                        Text("Nachtragen")
+                            .font(.caption2.weight(.bold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.orange.opacity(0.25)))
+                        Button("Zurück zu heute") {
+                            withAnimation(.easeInOut(duration: 0.15)) { state.showToday() }
+                        }
+                        .buttonStyle(.link)
+                        .font(.caption)
+                    }
+                }
                 Text(total == 0 ? "Keine Gewohnheiten" : "\(done) von \(total) erledigt")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -136,6 +165,14 @@ struct DesktopWidgetView: View {
                 .help("Tage in Folge, an denen alle Gewohnheiten erledigt wurden")
         }
     }
+
+    /// "Heute, Di. 10. Nov.", "Gestern, Mo. 9. Nov." oder "Do. 5. Nov."
+    private func dayTitle(_ day: Day) -> String {
+        let date = day.date().formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        if day == state.today { return "Heute, \(date)" }
+        if day == state.today.adding(days: -1) { return "Gestern, \(date)" }
+        return date
+    }
 }
 
 struct ToolbarIcon: View {
@@ -143,6 +180,7 @@ struct ToolbarIcon: View {
     let help: String
     let action: () -> Void
     @State private var hovering = false
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
@@ -152,9 +190,10 @@ struct ToolbarIcon: View {
                 .frame(width: 20, height: 20)
                 .background(Circle().fill(Color.primary.opacity(hovering ? 0.1 : 0)))
                 .contentShape(Circle())
+                .opacity(isEnabled ? 1 : 0.3)
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .onHover { hovering = isEnabled && $0 }
         .help(help)
     }
 }
@@ -237,28 +276,77 @@ struct StreakBadge: View {
     }
 }
 
+/// Übersicht der letzten Wochen: jede Spalte eine Woche, jede Zeile ein Wochentag.
+/// Je grüner ein Kästchen, desto mehr Gewohnheiten wurden an dem Tag erledigt.
+/// Ein Klick auf einen Tag springt dorthin (zum Nachtragen).
 struct HeatmapView: View {
     let streaks: StreakCalculator
     let today: Day
+    let selected: Day
+    var onSelect: (Day) -> Void = { _ in }
+
     private let weeks = 15
     private let cell: CGFloat = 12
+    private let gap: CGFloat = 3
+    private let labelWidth: CGFloat = 16
+    private static let weekdayNames = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"]
 
     var body: some View {
         let columns = HeatmapGrid.columns(endingAt: today, weeks: weeks)
         VStack(alignment: .leading, spacing: 6) {
-            Text("Letzte \(weeks) Wochen")
+            Text("Erledigt pro Tag · letzte \(weeks) Wochen")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            HStack(spacing: 3) {
-                ForEach(columns.indices, id: \.self) { week in
-                    VStack(spacing: 3) {
-                        ForEach(0..<7, id: \.self) { weekday in
-                            cellView(columns[week][weekday])
+
+            HStack(alignment: .top, spacing: 4) {
+                // Wochentage links
+                VStack(alignment: .trailing, spacing: gap) {
+                    Color.clear.frame(width: labelWidth, height: 10)
+                    ForEach(0..<7, id: \.self) { row in
+                        Text(weekdayName(row))
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: labelWidth, height: cell, alignment: .trailing)
+                    }
+                }
+
+                HStack(alignment: .top, spacing: gap) {
+                    ForEach(columns.indices, id: \.self) { week in
+                        VStack(spacing: gap) {
+                            monthLabel(columns: columns, week: week)
+                            ForEach(0..<7, id: \.self) { row in
+                                cellView(columns[week][row])
+                            }
                         }
                     }
                 }
             }
+
+            legend
         }
+    }
+
+    // MARK: - Teile
+
+    private func weekdayName(_ row: Int) -> String {
+        let weekday = (Calendar.current.firstWeekday - 1 + row) % 7
+        return Self.weekdayNames[weekday]
+    }
+
+    /// Monatsname über der ersten Woche eines neuen Monats.
+    private func monthLabel(columns: [[Day?]], week: Int) -> some View {
+        let first = columns[week].compactMap { $0 }.first
+        let previous = week > 0 ? columns[week - 1].compactMap { $0 }.first : nil
+        let isNewMonth = first != nil && (previous == nil || previous?.month != first?.month)
+        return ZStack(alignment: .leading) {
+            if isNewMonth, let first {
+                Text(first.date().formatted(.dateTime.month(.abbreviated)))
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+            }
+        }
+        .frame(width: cell, height: 10, alignment: .leading)
     }
 
     @ViewBuilder
@@ -266,14 +354,40 @@ struct HeatmapView: View {
         let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
         if let day {
             let ratio = streaks.completionRatio(on: day)
+            let isSelected = day == selected
             shape
                 .fill(color(for: ratio))
-                .overlay(shape.strokeBorder(day == today ? Color.primary.opacity(0.6) : .clear, lineWidth: 1))
+                .overlay(
+                    shape.strokeBorder(
+                        isSelected ? Color.orange : (day == today ? Color.primary.opacity(0.6) : .clear),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
+                )
                 .frame(width: cell, height: cell)
+                .contentShape(Rectangle())
+                .onTapGesture { onSelect(day) }
                 .help(tooltip(day: day, ratio: ratio))
         } else {
             Color.clear.frame(width: cell, height: cell)
         }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 3) {
+            Text("Weniger")
+            ForEach([0.0, 0.34, 0.67, 1.0], id: \.self) { ratio in
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(color(for: ratio))
+                    .frame(width: 9, height: 9)
+            }
+            Text("Mehr")
+            Spacer()
+            Text("Klick auf einen Tag = nachtragen")
+        }
+        .font(.system(size: 8))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .padding(.leading, labelWidth + 4)
     }
 
     private func color(for ratio: Double?) -> Color {
@@ -282,9 +396,9 @@ struct HeatmapView: View {
     }
 
     private func tooltip(day: Day, ratio: Double?) -> String {
-        let date = day.date().formatted(date: .abbreviated, time: .omitted)
-        guard let ratio else { return date }
-        return "\(date): \(Int((ratio * 100).rounded())) %"
+        let date = day.date().formatted(.dateTime.weekday(.wide).day().month(.wide))
+        guard let ratio else { return "\(date): keine Gewohnheiten" }
+        return "\(date): \(Int((ratio * 100).rounded())) % erledigt"
     }
 }
 
